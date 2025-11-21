@@ -13,3 +13,4 @@ httpx
 passlib[argon2]
 argon2-cffi
 pgvector
+email-validator
