@@ -4,6 +4,7 @@ sqlalchemy
 asyncpg
 python-dotenv
 pydantic
+pgvector
 pydantic-settings
 google-generativeai
 python-jose[cryptography]
