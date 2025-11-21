@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 # 設定密碼加密演算法
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # 設定 JWT 參數 (開發用預設值，上線請改 .env)
 # SECRET_KEY = "DEV_SECRET_KEY_PLEASE_CHANGE_IN_PROD" 
