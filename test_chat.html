@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>Go Teach 聊天室測試</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 20px auto; padding: 20px; }
+        .box { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
+        #messages { height: 300px; border: 1px solid #eee; overflow-y: scroll; padding: 10px; background: #f9f9f9; }
+        .msg { margin: 5px 0; padding: 8px; background: white; border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .my-msg { background: #e3f2fd; text-align: right; }
+        input, button { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        button { background: #2196F3; color: white; border: none; cursor: pointer; }
+        button:hover { background: #1976D2; }
+        .status { font-weight: bold; color: #666; }
+    </style>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+</head>
+<body>
+
+    <h2>💬 聊天室測試</h2>
+
+    <div class="box">
+        <h3>1. 連線設定</h3>
+        <input type="text" id="token" placeholder="貼上你的 Access Token (不含 Bearer)">
+        <button onclick="connectSocket()">🔌 連線 Socket</button>
+        <div class="status" id="connectionStatus">狀態: 未連線</div>
+    </div>
+
+    <div class="box">
+        <h3>2. 進入房間</h3>
+        <input type="text" id="roomId" placeholder="輸入 Room ID (可隨便填一個 UUID)">
+        <button onclick="joinRoom()">🚪 加入房間</button>
+    </div>
+
+    <div class="box">
+        <h3>3. 對話視窗</h3>
+        <div id="messages"></div>
+        <input type="text" id="msgContent" placeholder="輸入訊息...">
+        <button onclick="sendMessage()">📤 發送</button>
+    </div>
+
+    <script>
+        let socket = null;
+
+        // 1. 連線功能
+        function connectSocket() {
+            const token = document.getElementById('token').value;
+            if (!token) return alert("請先填入 Token！");
+
+            // 連線到後端，並透過 query string 傳送 token
+            socket = io("http://localhost:8000", {
+                query: { token: token },
+                transports: ['websocket'] // 強制使用 WebSocket 模式
+            });
+
+            socket.on('connect', () => {
+                document.getElementById('connectionStatus').innerText = "狀態: ✅ 已連線 (SID: " + socket.id + ")";
+                document.getElementById('connectionStatus').style.color = "green";
+                console.log("Connected!", socket.id);
+            });
+
+            socket.on('connect_error', (err) => {
+                document.getElementById('connectionStatus').innerText = "狀態: ❌ 連線失敗 (" + err.message + ")";
+                document.getElementById('connectionStatus').style.color = "red";
+                console.error("Connection Error:", err);
+            });
+
+            // 監聽後端推播回來的訊息
+            socket.on('receive_message', (data) => {
+                console.log("收到訊息:", data);
+                const box = document.getElementById('messages');
+                const div = document.createElement('div');
+                div.className = 'msg';
+                div.innerHTML = `<strong>User:</strong> ${data.content} <br><small>${data.created_at}</small>`;
+                box.appendChild(div);
+                box.scrollTop = box.scrollHeight; // 自動捲動到底部
+            });
+        }
+
+        // 2. 加入房間
+        function joinRoom() {
+            if (!socket) return alert("請先連線！");
+            const roomId = document.getElementById('roomId').value;
+            // 發送 'join_room' 事件給後端
+            socket.emit('join_room', { room_id: roomId });
+            alert(`已送出加入房間請求: ${roomId}`);
+        }
+
+        // 3. 發送訊息
+        function sendMessage() {
+            if (!socket) return alert("請先連線！");
+            const roomId = document.getElementById('roomId').value;
+            const content = document.getElementById('msgContent').value;
+            
+            if(!roomId || !content) return alert("請填寫房間 ID 和訊息內容");
+
+            // 發送 'send_message' 事件給後端
+            socket.emit('send_message', { 
+                room_id: roomId, 
+                content: content 
+            });
+            
+            document.getElementById('msgContent').value = ''; // 清空輸入框
+        }
+    </script>
+</body>
+</html>
